@@ -38,22 +38,16 @@ export function parseRsvp(raw) {
   const digits = phoneRaw.replace(/\D/g, "");
   if (digits.length < 8 || digits.length > 15) return { error: "Numéro de téléphone invalide." };
 
-  if (raw.attending !== "yes" && raw.attending !== "no") return { error: "Dis-moi si tu viens ou non." };
-  const attending = raw.attending === "yes";
+  const c = raw.companions ?? [];
+  if (!Array.isArray(c) || c.length > MAX_COMPANIONS) return { error: `Tu peux venir avec ${MAX_COMPANIONS} invités au maximum.` };
+  const companions = c.map((n) => str(n, 80));
+  if (companions.some((n) => !n)) return { error: "Indique le nom de chaque invité." };
+  const guests = 1 + companions.length;
 
-  let companions = [];
-  if (attending) {
-    const c = raw.companions ?? [];
-    if (!Array.isArray(c) || c.length > MAX_COMPANIONS) return { error: `Tu peux venir avec ${MAX_COMPANIONS} invités au maximum.` };
-    companions = c.map((n) => str(n, 80));
-    if (companions.some((n) => !n)) return { error: "Indique le nom de chaque invité." };
-  }
-  const guests = attending ? 1 + companions.length : 0;
-
-  const diet = attending && Array.isArray(raw.diet) ? [...new Set(raw.diet.filter((d) => DIET.has(d)))] : [];
+  const diet = Array.isArray(raw.diet) ? [...new Set(raw.diet.filter((d) => DIET.has(d)))] : [];
   const note = str(raw.note, 300);
 
-  return { value: { key: digits, rsvp: { name, phone: phoneRaw, attending, guests, companions, diet, note } } };
+  return { value: { key: digits, rsvp: { name, phone: phoneRaw, guests, companions, diet, note } } };
 }
 
 export function createApp({ dataFile, adminKey = "" }) {
@@ -127,7 +121,7 @@ export function createApp({ dataFile, adminKey = "" }) {
           return send(res, 400, { error: "Requête invalide." });
         }
         // Honeypot: bots fill it. Pretend success, store nothing.
-        if (raw && typeof raw.website === "string" && raw.website !== "") return send(res, 200, { rsvp: { name: "toi", phone: "", attending: false, guests: 0 } });
+        if (raw && typeof raw.website === "string" && raw.website !== "") return send(res, 200, { rsvp: { name: "toi", phone: "", guests: 1, companions: [] } });
 
         const parsed = parseRsvp(raw);
         if (parsed.error) return send(res, 400, { error: parsed.error });
@@ -141,9 +135,8 @@ export function createApp({ dataFile, adminKey = "" }) {
       if (url.pathname === "/api/rsvps" && req.method === "GET") {
         if (!isAdmin(req, url)) return send(res, 401, { error: "Non autorisé." });
         const list = Object.values(db).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-        const yes = list.filter((r) => r.attending);
         return send(res, 200, {
-          totals: { responses: list.length, yes: yes.length, no: list.length - yes.length, people: yes.reduce((n, r) => n + r.guests, 0) },
+          totals: { responses: list.length, people: list.reduce((n, r) => n + r.guests, 0) },
           rsvps: list,
         });
       }
