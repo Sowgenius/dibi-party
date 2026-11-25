@@ -1,0 +1,6 @@
+data/
+node_modules/
+.git
+reference-main-page.png
+*.test.mjs
+README.md
