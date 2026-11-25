@@ -273,7 +273,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           </div>
           <div class="row">
             <dt>Cotisation</dt>
-            <dd>20 000 XOF<small>Ne règle rien maintenant : je te contacte d'abord.</small></dd>
+            <dd>20 000 XOF<small>Ne règle rien maintenant : je te contacte d'abord.</small></dd>
           </div>
           <div class="row">
             <dt>Dress code</dt>
@@ -304,7 +304,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       <article class="stop stop--party">
         <p class="when">Ensuite · après le Day 1</p>
         <h3>Dibi Party, chez moi</h3>
-        <p>La Game Jam se joue au Goethe. La fête, elle, commence chez moi. L'adresse et l'heure d'arrivée se partagent en privé, avec ceux qui confirment. Cotisation : 20 000 XOF, à régler seulement quand je te contacte.</p>
+        <p>La Game Jam se joue au Goethe. La fête, elle, commence chez moi. L'adresse et l'heure d'arrivée se partagent en privé, avec ceux qui confirment. Cotisation : 20 000 XOF, à régler seulement quand je te contacte.</p>
         <ul class="tags" aria-label="Au programme">
           <li>Dibi bien grillé</li>
           <li>Bissap</li>
@@ -455,7 +455,7 @@ function showResult(r) {
   const yes = r.attending;
   $("done-title").textContent = yes ? `C'est noté, ${first}.` : `Merci, ${first}.`;
   $("done-text").textContent = yes
-    ? `${r.guests === 1 ? "Tu viens seul·e." : `Vous serez ${r.guests}, toi compris.`} Je t'envoie l'adresse et l'heure par message au ${r.phone}. Pense au blanc. La cotisation est de 20 000 XOF : ne paie rien avant que je te contacte.`
+    ? `${r.guests === 1 ? "Tu viens seul·e." : `Vous serez ${r.guests}, toi compris.`} Je t'envoie l'adresse et l'heure par message au ${r.phone}. Pense au blanc. La cotisation est de 20 000 XOF : ne paie rien avant que je te contacte.`
     : "Dommage, ce sera pour la prochaine. Si ça change, tu peux modifier ta réponse ici.";
   $("stamp").classList.toggle("stamp--no", !yes);
   $("stamp").firstElementChild.firstElementChild.setAttribute("href", yes ? "#i-check" : "#i-x");
