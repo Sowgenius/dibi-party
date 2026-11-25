@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
-const MAX_PARTY = 6;
+const MAX_COMPANIONS = 5;
 const DIET = new Set(["veggie", "mild", "juice"]);
 const MAX_BODY = 8 * 1024;
 
@@ -41,18 +41,19 @@ export function parseRsvp(raw) {
   if (raw.attending !== "yes" && raw.attending !== "no") return { error: "Dis-moi si tu viens ou non." };
   const attending = raw.attending === "yes";
 
-  let guests = 0;
+  let companions = [];
   if (attending) {
-    guests = raw.guests;
-    if (!Number.isInteger(guests) || guests < 1 || guests > MAX_PARTY)
-      return { error: `Le nombre de personnes doit être entre 1 et ${MAX_PARTY}.` };
+    const c = raw.companions ?? [];
+    if (!Array.isArray(c) || c.length > MAX_COMPANIONS) return { error: `Tu peux venir avec ${MAX_COMPANIONS} invités au maximum.` };
+    companions = c.map((n) => str(n, 80));
+    if (companions.some((n) => !n)) return { error: "Indique le nom de chaque invité." };
   }
+  const guests = attending ? 1 + companions.length : 0;
 
   const diet = attending && Array.isArray(raw.diet) ? [...new Set(raw.diet.filter((d) => DIET.has(d)))] : [];
-  const guestNames = attending && guests > 1 ? str(raw.guestNames, 200) : "";
   const note = str(raw.note, 300);
 
-  return { value: { key: digits, rsvp: { name, phone: phoneRaw, attending, guests, guestNames, diet, note } } };
+  return { value: { key: digits, rsvp: { name, phone: phoneRaw, attending, guests, companions, diet, note } } };
 }
 
 export function createApp({ dataFile, adminKey = "" }) {

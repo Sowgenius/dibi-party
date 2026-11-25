@@ -273,7 +273,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           </div>
           <div class="row">
             <dt>Cotisation</dt>
-            <dd>20 000 XOF<small>Ne règle rien maintenant : je te contacte d'abord.</small></dd>
+            <dd>20 000 XOF par personne<small>Ne règle rien maintenant : je te contacte d'abord.</small></dd>
           </div>
           <div class="row">
             <dt>Dress code</dt>
@@ -304,7 +304,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       <article class="stop stop--party">
         <p class="when">Ensuite · après le Day 1</p>
         <h3>Dibi Party, chez moi</h3>
-        <p>La Game Jam se joue au Goethe. La fête, elle, commence chez moi. L'adresse et l'heure d'arrivée se partagent en privé, avec ceux qui confirment. Cotisation : 20 000 XOF, à régler seulement quand je te contacte.</p>
+        <p>La Game Jam se joue au Goethe. La fête, elle, commence chez moi. L'adresse et l'heure d'arrivée se partagent en privé, avec ceux qui confirment. Cotisation : 20 000 XOF par personne, à régler seulement quand je te contacte.</p>
         <ul class="tags" aria-label="Au programme">
           <li>Dibi bien grillé</li>
           <li>Bissap</li>
@@ -351,20 +351,20 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
           <div id="yes-only" class="yes-only" hidden style="display:none">
             <div style="display:grid;gap:1.6rem">
               <div class="field">
-                <label for="guests">Vous serez combien, toi compris ?</label>
+                <label for="plus">Tu viens avec du monde ? Invités en plus de toi (+1, +2…)</label>
                 <div class="stepper">
-                  <button type="button" id="less" aria-label="Une personne de moins"><svg class="i" aria-hidden="true"><use href="#i-minus"/></svg></button>
-                  <input id="guests" name="guests" type="number" min="1" max="6" step="1" value="1" inputmode="numeric" aria-describedby="guests-hint party-line">
-                  <button type="button" id="more" aria-label="Une personne de plus"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg></button>
+                  <button type="button" id="less" aria-label="Un invité de moins"><svg class="i" aria-hidden="true"><use href="#i-minus"/></svg></button>
+                  <input id="plus" type="number" min="0" max="5" step="1" value="0" inputmode="numeric" aria-describedby="plus-hint party-line">
+                  <button type="button" id="more" aria-label="Un invité de plus"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg></button>
                 </div>
-                <p class="party-line" id="party-line" aria-live="polite">Tu viens seul·e.</p>
-                <p class="hint" id="guests-hint">6 personnes maximum. Au-delà, écris-moi.</p>
+                <p class="party-line" id="party-line" aria-live="polite"></p>
+                <p class="hint" id="plus-hint">0 = tu viens seul·e. 5 invités maximum, au-delà écris-moi.</p>
               </div>
 
-              <div class="field" id="names-field" hidden style="display:none">
-                <label for="guest-names">Prénoms de tes invités</label>
-                <input id="guest-names" name="guestNames" type="text" maxlength="200" autocomplete="off" placeholder="Awa, Moussa">
-              </div>
+              <fieldset id="companions" hidden style="display:none">
+                <legend class="visually-hidden">Le nom de chaque invité</legend>
+                <div id="companion-list" style="display:grid;gap:1rem"></div>
+              </fieldset>
 
               <fieldset>
                 <legend>Pour que personne ne reste sur sa faim</legend>
@@ -409,13 +409,14 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 <script>
 "use strict";
 const $ = (id) => document.getElementById(id);
-const form = $("rsvp-form"), guests = $("guests"), yesOnly = $("yes-only");
-const namesField = $("names-field"), formError = $("form-error"), submitBtn = $("submit");
-const MAX = Number(guests.max);
+const form = $("rsvp-form"), plus = $("plus"), yesOnly = $("yes-only");
+const companions = $("companions"), list = $("companion-list"), formError = $("form-error"), submitBtn = $("submit");
+const MAX = Number(plus.max), PRICE = 20000;
+const xof = (n) => `${n.toLocaleString("fr-FR")}\u00a0XOF`;
 
 const show = (el, on) => { el.hidden = !on; el.style.display = on ? "" : "none"; };
 const plural = (n, one, many) => (n > 1 ? many : one);
-const clamp = (n) => Math.min(MAX, Math.max(1, Number.isFinite(n) ? Math.trunc(n) : 1));
+const clamp = (n) => Math.min(MAX, Math.max(0, Number.isFinite(n) ? Math.trunc(n) : 0));
 
 /* aria-invalid mirrors :user-invalid; the error id is listed only while shown */
 function syncAria(el) {
@@ -432,22 +433,44 @@ form.addEventListener("blur", (e) => syncAria(e.target), true);
 form.addEventListener("input", (e) => syncAria(e.target));
 form.addEventListener("invalid", (e) => syncAria(e.target), true);
 
-/* attending toggles the "how many" block */
+/* "+N" drives one required name field per guest; values survive count changes */
+function renderCompanions(n) {
+  const kept = [...list.querySelectorAll("input")].map((i) => i.value);
+  list.replaceChildren(...Array.from({ length: n }, (_, i) => {
+    const wrap = document.createElement("div");
+    wrap.className = "field";
+    const label = document.createElement("label");
+    label.htmlFor = `companion-${i}`;
+    label.textContent = `Nom de l'invité ${i + 1} `;
+    const star = document.createElement("span");
+    star.className = "req"; star.setAttribute("aria-hidden", "true"); star.textContent = "*";
+    label.append(star);
+    const input = Object.assign(document.createElement("input"), {
+      id: `companion-${i}`, name: "companion", type: "text", required: true, maxLength: 80, autocomplete: "off", value: kept[i] ?? "",
+    });
+    wrap.append(label, input);
+    return wrap;
+  }));
+}
+
 function refresh() {
   const yes = form.elements.attending.value === "yes";
   show(yesOnly, yes);
-  guests.disabled = !yes;
-  const n = clamp(Number(guests.value));
-  guests.value = n;
-  $("less").disabled = n <= 1;
+  plus.disabled = !yes;
+  const n = yes ? clamp(Number(plus.value)) : 0;
+  if (yes) plus.value = n;
+  $("less").disabled = n <= 0;
   $("more").disabled = n >= MAX;
-  show(namesField, yes && n > 1);
-  $("party-line").textContent = n === 1 ? "Tu viens seul·e." : `Toi + ${n - 1} ${plural(n - 1, "invité·e", "invité·e·s")}, ${n} personnes en tout.`;
+  if (list.children.length !== n) renderCompanions(n);
+  show(companions, n > 0);
+  $("party-line").textContent = n === 0
+    ? `Tu viens seul·e. Cotisation : ${xof(PRICE)}.`
+    : `Toi + ${n} ${plural(n, "invité", "invités")} : ${n + 1} personnes. Cotisation totale : ${xof(PRICE * (n + 1))}.`;
 }
 form.addEventListener("change", refresh);
-guests.addEventListener("input", refresh);
-$("less").addEventListener("click", () => { guests.value = clamp(Number(guests.value) - 1); refresh(); });
-$("more").addEventListener("click", () => { guests.value = clamp(Number(guests.value) + 1); refresh(); });
+plus.addEventListener("input", refresh);
+$("less").addEventListener("click", () => { plus.value = clamp(Number(plus.value) - 1); refresh(); });
+$("more").addEventListener("click", () => { plus.value = clamp(Number(plus.value) + 1); refresh(); });
 refresh();
 
 function showResult(r) {
@@ -455,7 +478,7 @@ function showResult(r) {
   const yes = r.attending;
   $("done-title").textContent = yes ? `C'est noté, ${first}.` : `Merci, ${first}.`;
   $("done-text").textContent = yes
-    ? `${r.guests === 1 ? "Tu viens seul·e." : `Vous serez ${r.guests}, toi compris.`} Je t'envoie l'adresse et l'heure par message au ${r.phone}. Pense au blanc. La cotisation est de 20 000 XOF : ne paie rien avant que je te contacte.`
+    ? `${r.companions.length === 0 ? "Tu viens seul·e." : `Vous serez ${r.guests}, toi compris, avec ${r.companions.join(", ")}.`} Je t'envoie l'adresse et l'heure par message au ${r.phone}. Pense au blanc. Cotisation : ${xof(PRICE)} par personne, soit ${xof(PRICE * r.guests)} pour toi et tes invités. Ne paie rien avant que je te contacte.`
     : "Dommage, ce sera pour la prochaine. Si ça change, tu peux modifier ta réponse ici.";
   $("stamp").classList.toggle("stamp--no", !yes);
   $("stamp").firstElementChild.firstElementChild.setAttribute("href", yes ? "#i-check" : "#i-x");
@@ -472,8 +495,7 @@ form.addEventListener("submit", async (e) => {
   const yes = f.get("attending") === "yes";
   const body = {
     name: f.get("name"), phone: f.get("phone"), attending: f.get("attending"),
-    guests: yes ? Number(f.get("guests")) : 0,
-    guestNames: yes ? f.get("guestNames") : "",
+    companions: yes ? f.getAll("companion") : [],
     diet: yes ? f.getAll("diet") : [],
     note: f.get("note"), website: f.get("website"),
   };
